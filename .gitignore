@@ -1,0 +1,54 @@
+# --- Data ---
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# --- Model weights (large files) ---
+models/classification/weights/*
+models/segmentation/weights/*
+!models/classification/weights/.gitkeep
+!models/segmentation/weights/.gitkeep
+*.pt
+*.pth
+*.h5
+*.ckpt
+*.onnx
+
+# --- Outputs (keep folder, ignore generated content) ---
+outputs/figures/*
+outputs/predictions/*
+!outputs/figures/.gitkeep
+!outputs/predictions/.gitkeep
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+*-checkpoint.ipynb
+
+# --- Virtual environments ---
+venv/
+.venv/
+env/
+ENV/
+
+# --- IDE ---
+.vscode/
+.idea/
+*.swp
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Environment / secrets ---
+.env
+*.log

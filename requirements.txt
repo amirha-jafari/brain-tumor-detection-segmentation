@@ -1,0 +1,32 @@
+# --- Core ---
+numpy
+pandas
+matplotlib
+seaborn
+opencv-python
+pillow
+
+# --- Deep Learning ---
+torch
+torchvision
+segmentation-models-pytorch
+
+# --- Data handling ---
+scikit-learn
+albumentations
+
+# --- Config ---
+pyyaml
+
+# --- Metrics ---
+torchmetrics
+
+# --- App / Demo ---
+streamlit
+
+# --- Notebook ---
+jupyter
+ipykernel
+
+# --- Utilities ---
+tqdm
