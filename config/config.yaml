@@ -17,7 +17,7 @@ classification:
   batch_size: 32
   learning_rate: 0.0001
   epochs: 20
-  weights_path: "models/classification/weights/classifier_best.pt"
+  weights_path:  "models/classification/weights/classifier_weighted_best.pt"
 
 segmentation:
   architecture: "unet"
