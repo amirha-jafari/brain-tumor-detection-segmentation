@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Brain Tumor Detection &amp; Segmentation — Nexora</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue: #2b74d8;
+    --blue-light: #2f80ed;
+    --blue-bg: #eaf2fd;
+    --red: #ff4646;
+    --text-dark: #333333;
+    --text-mid: #666666;
+    --text-light: #999999;
+    --text-faint: #bfbfbf;
+    --border: #f2f2f2;
+    --border-soft: #f6f6f6;
+    --bg-page: #fafafa;
+    --bg-card: #fcfbfc;
+    --bg-inset: #f9f8f9;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{
+    font-family:'Poppins', sans-serif;
+    background:var(--bg-page);
+    color:var(--text-dark);
+    -webkit-font-smoothing:antialiased;
+  }
+  a{ text-decoration:none; color:inherit; }
+  ul{ list-style:none; }
+  img.icon{ display:block; }
+
+  /* ---------- Layout shell ---------- */
+  .app{ display:flex; min-height:100vh; }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    width:256px; flex-shrink:0; background:#fff; border-right:1px solid var(--border-soft);
+    padding:24px; display:flex; flex-direction:column; justify-content:space-between;
+  }
+  .brand{ display:flex; align-items:center; gap:8px; margin-bottom:24px; }
+  .brand .logo{ width:44px; height:44px; border-radius:16px; background:#111; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .brand .logo img{ width:26px; height:26px; object-fit:contain; }
+  .brand .name{ font-weight:600; font-size:14px; color:var(--text-dark); }
+  .brand .tagline{ font-weight:300; font-size:12px; color:var(--text-faint); }
+  .divider{ height:1px; background:var(--border-soft); margin-bottom:24px; }
+  .nav-link{
+    display:flex; align-items:center; gap:12px;
+    padding:10px 12px; border-radius:8px;
+    color:var(--text-light); font-size:14px; letter-spacing:-0.28px;
+    cursor:pointer;
+  }
+  .nav-link img.icon{ width:20px; height:20px; flex-shrink:0; }
+  .nav-group{ margin-bottom:2px; }
+  .nav-sub{ padding-left:32px; margin-top:4px; }
+  .nav-sub a{
+    display:flex; align-items:center; gap:6px;
+    padding:8px 0; font-size:12px; color:var(--text-faint);
+    font-family:'Inter',sans-serif; font-weight:300;
+  }
+  .nav-sub a.current{ color:#050505; }
+  .nav-sub a::before{ content:''; width:4px; height:4px; border-radius:50%; background:#d9d9d9; }
+  .nav-sub a.current::before{ background:var(--blue); }
+  .logout{ display:flex; align-items:center; gap:8px; padding:12px; border-radius:16px; color:#f63437; font-size:14px; cursor:pointer; }
+  .logout img.icon{ width:18px; height:18px; }
+
+  /* ---------- Main ---------- */
+  .main{ flex:1; display:flex; flex-direction:column; min-width:0; }
+  .topbar{
+    height:92px; background:#fff; border-bottom:1px solid var(--border-soft);
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 32px; flex-shrink:0;
+  }
+  .breadcrumb{ display:flex; align-items:center; gap:8px; font-size:14px; }
+  .breadcrumb .icon{ width:18px; height:18px; margin-right:4px; }
+  .breadcrumb .dim{ color:rgba(28,28,28,.4); }
+  .breadcrumb .mid{ color:#a4a4a4; }
+  .breadcrumb .sep{ color:rgba(28,28,28,.2); }
+  .topbar-actions{ display:flex; align-items:center; gap:12px; }
+  .search-box{
+    width:223px; height:44px; background:var(--bg-page); border:1px solid var(--border);
+    border-radius:12px; display:flex; align-items:center; gap:6px; padding:0 12px;
+    color:var(--text-dark); font-size:12px; font-weight:300;
+  }
+  .search-box img.icon{ width:14px; height:14px; }
+  .search-box span.kbd{ margin-left:auto; color:rgba(28,28,28,.2); font-size:14px; }
+  .icon-btn{ width:44px; height:44px; border:1px solid var(--border); border-radius:12px; display:flex; align-items:center; justify-content:center; color:var(--text-light); cursor:pointer; }
+  .icon-btn img.icon{ width:18px; height:18px; }
+  .avatar{ width:44px; height:44px; border-radius:12px; overflow:hidden; }
+  .avatar img{ width:100%; height:100%; object-fit:cover; display:block; }
+
+  .content{ padding:32px; flex:1; }
+
+  .page-header{ margin-bottom:24px; }
+  .pill{
+    display:inline-flex; align-items:center; gap:4px;
+    border:1px solid #909090; border-radius:40px; padding:6px 13px;
+    font-size:12px; color:rgba(28,28,28,.4); text-transform:lowercase;
+    box-shadow:0 2px 13px rgba(0,0,0,.1);
+    margin-bottom:16px;
+  }
+  .pill img.icon{ width:12px; height:12px; }
+  h1{ font-size:24px; font-weight:500; color:#111; margin-bottom:16px; letter-spacing:-.3px; }
+  .disclaimer{ font-weight:300; font-size:16px; color:#000; margin-bottom:24px; }
+  .hr{ height:1px; background:var(--border-soft); }
+
+  /* ---------- Three-column grid ---------- */
+  .grid{ display:flex; gap:24px; align-items:stretch; margin-top:24px; flex-wrap:wrap; }
+
+  /* --- Patient history column --- */
+  .history-card{
+    width:320px; flex-shrink:0;
+    background:linear-gradient(to bottom, rgba(249,248,249,.3), rgba(249,248,249,0));
+    border:1px solid var(--border);
+    border-radius:24px; padding:16px;
+    display:flex; flex-direction:column;
+    min-height:0;
+  }
+  .history-top{ flex-shrink:0; }
+  .patient-list{ flex:1; min-height:0; overflow-y:auto; padding-right:4px; margin-right:-4px; }
+  .patient-list::-webkit-scrollbar{ width:5px; }
+  .patient-list::-webkit-scrollbar-thumb{ background:#e2e2e2; border-radius:10px; }
+  .patient-list::-webkit-scrollbar-track{ background:transparent; }
+  .history-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+  .history-title{ display:flex; align-items:center; gap:4px; font-weight:500; font-size:14px; color:var(--text-dark); }
+  .history-title img.icon{ width:14px; height:14px; }
+  .history-head > img.icon{ width:20px; height:20px; transform:rotate(90deg); }
+  .history-sub{ font-size:12px; font-weight:300; color:var(--text-light); margin:8px 0 12px; }
+  .progress-track{ height:4px; background:var(--blue-bg); border-radius:3px; overflow:hidden; margin-bottom:16px; }
+  .progress-fill{ height:100%; width:48%; background:linear-gradient(to right, var(--blue-light), #bfd8f9); border-radius:3px; }
+  .patient-row{
+    background:var(--bg-card); border:1px solid #f7f7f7; border-radius:12px;
+    padding:12px; margin-bottom:8px;
+  }
+  .patient-row .top{ display:flex; align-items:center; justify-content:space-between; font-size:14px; font-weight:500; color:var(--text-dark); margin-bottom:12px; }
+  .patient-row .top img.icon{ width:12px; height:12px; }
+  .patient-row .tags{ display:flex; gap:4px; flex-wrap:nowrap; }
+  .patient-row .tag{ background:var(--bg-page); border:1px solid #f7f7f7; border-radius:24px; padding:4px 7px; font-size:11px; font-weight:300; color:var(--text-light); white-space:nowrap; }
+  .patient-row .tag b{ color:var(--text-dark); font-weight:500; }
+
+  /* --- MRI scan column --- */
+  .mri-card{
+    width:452px; flex-shrink:0;
+    background:var(--bg-card); border:1px solid var(--border);
+    border-radius:24px; padding:24px;
+    display:flex; flex-direction:column; gap:24px;
+  }
+  .prediction-badge{
+    background:var(--red); border-radius:16px; padding:15px 12px;
+    display:flex; align-items:center; justify-content:space-between;
+    color:#fff; position:relative; overflow:hidden;
+    transition:background .3s;
+  }
+  .prediction-badge.idle{
+    background:rgba(249,248,249,.85);
+    backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
+    border:1px solid #f0efef;
+    color:#9a9a9a;
+  }
+  .prediction-badge.idle .left b{ color:#8a8a8a; }
+  .prediction-badge .left{ display:flex; align-items:center; gap:8px; font-size:14px; }
+  .prediction-badge .left img.icon{ width:20px; height:20px; flex-shrink:0; }
+  .prediction-badge .left b{ font-weight:500; }
+  .prediction-badge:not(.idle) .left b{ font-weight:700; }
+  .prediction-badge .confidence{ text-align:right; font-size:10px; font-weight:600; }
+  .prediction-badge .confidence b{ font-size:12px; }
+
+  .mri-preview{
+    width:100%; height:432px; border-radius:16px; overflow:hidden;
+    background:#0e0e12 center/cover no-repeat;
+    position:relative; display:flex; align-items:center; justify-content:center;
+    border:1px dashed #e4e4e4;
+  }
+  .mri-preview.empty{ background:#f9f8f9; }
+  .mri-preview .placeholder{ color:var(--text-faint); font-size:13px; text-align:center; padding:24px; font-weight:300; }
+  .mri-legend{
+    position:absolute; left:12px; bottom:12px;
+    background:rgba(20,20,20,.45); backdrop-filter:blur(4px);
+    -webkit-backdrop-filter:blur(4px);
+    border:1px solid rgba(255,255,255,.15); border-radius:14px;
+    padding:10px 14px; display:flex; align-items:center; gap:6px;
+    font-size:12px; font-weight:500; color:#ffffff;
+  }
+  .mri-legend .dot{ width:6px; height:6px; border-radius:50%; background:var(--red); }
+  .mri-preview.empty .mri-legend{ display:none; }
+
+  .upload-btn{
+    width:100%; height:54px; border:1px solid #909090; border-radius:16px;
+    background:transparent; display:flex; align-items:center; justify-content:center; gap:6px;
+    font-family:'Poppins',sans-serif; font-size:14px; color:var(--text-dark);
+    cursor:pointer; box-shadow:0 2px 13px rgba(0,0,0,.08);
+  }
+  .upload-btn img.icon{ width:14px; height:14px; }
+  .upload-hint{ font-size:10px; font-weight:300; color:var(--text-light); text-align:center; margin-top:16px; }
+
+  /* --- Right column --- */
+  .right-col{ width:357px; flex-shrink:0; display:flex; flex-direction:column; gap:16px; position:relative; }
+  .right-col.disabled{ pointer-events:none; }
+  .right-col.disabled .summary-card,
+  .right-col.disabled .notes-card{ opacity:.45; filter:grayscale(.3); }
+  .empty-overlay{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    text-align:center; z-index:2; pointer-events:none;
+  }
+  .empty-overlay .box{
+    background:#fff; border:1px solid var(--border); border-radius:16px;
+    padding:20px 24px; max-width:260px; box-shadow:0 4px 20px rgba(0,0,0,.06);
+  }
+  .empty-overlay .box .title{ font-weight:600; font-size:13px; color:var(--text-dark); margin-bottom:4px; }
+  .empty-overlay .box .sub{ font-weight:300; font-size:12px; color:var(--text-light); }
+  .right-col:not(.disabled) .empty-overlay{ display:none; }
+
+  .summary-card{ border:1px solid var(--border); border-radius:24px; padding:16px; transition:opacity .3s, filter .3s; position:relative; }
+  .summary-head{ display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+  .summary-head .ai-icon{
+    width:44px; height:44px; border-radius:10px; background:#fff; border:1px solid #ededed;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .summary-head .ai-icon img{ width:22px; height:22px; }
+  .summary-head .title{ font-weight:600; font-size:14px; color:var(--text-dark); margin-bottom:6px; }
+  .summary-head .status{ display:flex; align-items:center; gap:4px; font-size:12px; font-weight:300; color:var(--text-light); }
+  .summary-head .status b{ color:var(--text-dark); font-weight:500; }
+  .summary-head .status .dot{ width:6px; height:6px; border-radius:50%; background:var(--blue); margin-right:2px; }
+
+  .metrics-grid{
+    background:var(--bg-inset); border-radius:12px; padding:12px;
+    display:grid; grid-template-columns:1fr 1fr; gap:7px;
+  }
+  .metric{
+    background:var(--bg-card); border:1px solid rgba(242,242,242,.5); border-radius:12px;
+    padding:8px; display:flex; flex-direction:column; gap:6px;
+  }
+  .metric .row{ display:flex; align-items:center; justify-content:space-between; }
+  .metric .row img.icon{ width:12px; height:12px; }
+  .metric .label{ font-family:'Inter',sans-serif; font-size:9px; color:var(--text-mid); }
+  .metric .value{ font-weight:600; font-size:14px; color:var(--text-dark); }
+  .metric .value sup{ font-size:8px; }
+  .metric .track{ height:4px; background:var(--blue-bg); border-radius:3px; overflow:hidden; }
+  .metric .fill{ height:100%; background:linear-gradient(to right, var(--blue-light), #bfd8f9); border-radius:3px; width:0%; transition:width .6s ease; }
+  .metric .scale{ display:flex; justify-content:space-between; font-size:5px; font-weight:500; color:var(--text-faint); }
+
+  .notes-card{ border:1px solid var(--border); border-radius:24px; padding:20px; display:flex; flex-direction:column; gap:32px; transition:opacity .3s, filter .3s; }
+  .notes-title{ display:flex; align-items:center; gap:8px; font-weight:600; font-size:16px; color:var(--text-dark); margin-bottom:16px; }
+  .notes-title img.icon{ width:16px; height:16px; }
+  .notes-list{ margin-bottom:16px; }
+  .notes-list li{ list-style:disc; margin-left:19px; font-size:13px; color:var(--text-mid); line-height:1.6; }
+  .notes-flag{ font-weight:500; font-size:14px; color:var(--blue); }
+  .download-btn{
+    width:100%; height:44px; border:1px solid var(--border); border-radius:16px;
+    background:transparent; display:flex; align-items:center; justify-content:center; gap:6px;
+    font-family:'Poppins',sans-serif; font-size:12px; color:var(--text-dark); cursor:pointer;
+  }
+  .download-btn img.icon{ width:14px; height:14px; }
+
+  input[type=file]{ display:none; }
+
+  /* --- Fixed equal-height layout overrides --- */
+  .grid{
+    align-items:flex-start;
+  }
+  .history-card,
+  .mri-card,
+  .right-col{
+    height:670px;
+    flex:none;
+  }
+  .patient-list{
+    overflow-y:auto;
+  }
+
+  @media (max-width:1300px){ .grid{ flex-wrap:wrap; } }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div>
+      <div class="brand">
+        <div class="logo"><img src="assets/logo.png" alt="Nexora logo"></div>
+        <div>
+          <div class="name">NEXORA</div>
+          <div class="tagline">AI-assisted MRI analysis</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <nav>
+        <a class="nav-link"><img class="icon" src="assets/icons/home.svg">Dashboard</a>
+        <a class="nav-link" style="margin-top:16px;"><img class="icon" src="assets/icons/add-square.svg">New Analysis</a>
+        <div class="nav-group" style="margin-top:16px;">
+          <a class="nav-link" style="color:var(--text-dark);"><img class="icon" src="assets/icons/pie-chart.svg">Diagnostics</a>
+          <div class="nav-sub">
+            <a class="current">Tumor Detection</a>
+            <a>MRI Analysis</a>
+            <a>Brain Analysis</a>
+          </div>
+        </div>
+        <a class="nav-link" style="margin-top:16px;"><img class="icon" src="assets/icons/users.svg">Patients</a>
+        <a class="nav-link" style="margin-top:16px;"><img class="icon" src="assets/icons/history.svg">Analysis History</a>
+        <a class="nav-link" style="margin-top:16px;"><img class="icon" src="assets/icons/reorder.svg">Reports</a>
+        <a class="nav-link" style="margin-top:16px;"><img class="icon" src="assets/icons/settings.svg">Settings</a>
+      </nav>
+    </div>
+    <a class="logout"><img class="icon" src="assets/icons/logout.svg">Logout Account</a>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <header class="topbar">
+      <div class="breadcrumb">
+        <img class="icon" src="assets/icons/sidebar.svg">
+        <span class="dim">Dashboards</span>
+        <span class="sep">/</span>
+        <span class="mid">Diagnostics</span>
+        <span class="sep">/</span>
+        <span>Tumor Detection</span>
+      </div>
+      <div class="topbar-actions">
+        <div class="search-box"><img class="icon" src="assets/icons/search.svg"> Search <span class="kbd">⌘/</span></div>
+        <div class="icon-btn"><img class="icon" src="assets/icons/moon.svg"></div>
+        <div class="icon-btn"><img class="icon" src="assets/icons/refresh.svg"></div>
+        <div class="icon-btn"><img class="icon" src="assets/icons/bell.svg"></div>
+        <div class="avatar"><img src="assets/profile.png" alt="Doctor profile"></div>
+      </div>
+    </header>
+
+    <section class="content">
+      <div class="page-header">
+        <span class="pill"><img class="icon" src="assets/icons/sidebar-alt.svg"> detection &amp; segmentation</span>
+        <h1>Brain Tumor Detection &amp; Segmentation</h1>
+        <p class="disclaimer">This is for educational purposes only and is not a substitute for professional medical diagnosis or treatment advice.</p>
+        <div class="hr"></div>
+      </div>
+
+      <div class="grid">
+
+        <!-- Patient history -->
+        <div class="history-card">
+          <div class="history-top">
+            <div class="history-head">
+              <span class="history-title"><img class="icon" src="assets/icons/layers.svg"> Patient history</span>
+              <img class="icon" src="assets/icons/chevron.svg">
+            </div>
+            <p class="history-sub">Patient records for tumor review</p>
+            <div class="progress-track"><div class="progress-fill"></div></div>
+          </div>
+          <div class="patient-list" id="patientList"></div>
+        </div>
+
+        <!-- MRI scan -->
+        <div class="mri-card">
+          <div class="prediction-badge idle" id="predictionBadge">
+            <span class="left">
+              <img class="icon" id="predictionIcon" src="assets/icons/shield-warning-gray.svg">
+              <span>Prediction: <b id="predictionText">Awaiting MRI upload</b></span>
+            </span>
+            <span class="confidence" id="confidenceText"></span>
+          </div>
+
+          <div class="mri-preview empty" id="mriPreview">
+            <div class="placeholder" id="mriPlaceholder">Upload an MRI scan to see the<br>predicted tumor overlay here</div>
+            <div class="mri-legend"><span class="dot"></span>Red = tumor region</div>
+          </div>
+
+          <div>
+            <button class="upload-btn" id="uploadBtn"><img class="icon" src="assets/icons/upload.svg"> Upload New MRI</button>
+            <p class="upload-hint">Supports: DICOM, NIfTI, JPG, PNG | Max size: 50MB</p>
+          </div>
+          <input type="file" id="fileInput" accept="image/*">
+        </div>
+
+        <!-- Right column -->
+        <div class="right-col disabled" id="rightCol">
+
+          <div class="summary-card">
+            <div class="empty-overlay">
+              <div class="box">
+                <div class="title">No analysis yet</div>
+                <div class="sub">Upload an MRI scan to generate the AI diagnostic summary</div>
+              </div>
+            </div>
+            <div class="summary-head">
+              <div class="ai-icon"><img src="assets/icons/ai.svg"></div>
+              <div>
+                <div class="title">AI Diagnostic Summary</div>
+                <div class="status"><span class="dot"></span>Tumor Detected: <b id="sumTumor">—</b></div>
+              </div>
+            </div>
+            <div class="metrics-grid" id="metricsGrid"></div>
+          </div>
+
+          <div class="notes-card">
+            <div>
+              <div class="notes-title"><img class="icon" src="assets/icons/notes.svg"> Clinical Notes</div>
+              <ul class="notes-list" id="notesList">
+                <li>Waiting for an MRI scan to be uploaded</li>
+              </ul>
+              <p class="notes-flag" id="notesFlag"></p>
+            </div>
+            <button class="download-btn"><img class="icon" src="assets/icons/download.svg"> Download Report</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+  // ---- Mock patient history ----
+  const patients = [
+    { name: "James Anderson", sex: "male", age: "45 years", test: "MRI" },
+    { name: "Sarah Whitfield", sex: "female", age: "32 years", test: "MRI" },
+    { name: "Michael Torres", sex: "male", age: "58 years", test: "MRI" },
+    { name: "Elena Kovacs", sex: "female", age: "27 years", test: "MRI" },
+    { name: "David Okafor", sex: "male", age: "63 years", test: "MRI" },
+    { name: "Amara Chen", sex: "female", age: "41 years", test: "MRI" },
+    { name: "Robert Hail", sex: "male", age: "50 years", test: "MRI" },
+    { name: "Nadia Petrova", sex: "female", age: "36 years", test: "MRI" },
+    { name: "Omar Siddiqui", sex: "male", age: "29 years", test: "MRI" },
+    { name: "Lucia Fernandez", sex: "female", age: "54 years", test: "MRI" },
+  ];
+  const listEl = document.getElementById("patientList");
+  listEl.innerHTML = patients.map(p => `
+    <div class="patient-row">
+      <div class="top">${p.name}<img class="icon" src="assets/icons/chevron-small.svg" style="transform:rotate(180deg);"></div>
+      <div class="tags">
+        <span class="tag">sex: <b>${p.sex}</b></span>
+        <span class="tag">age: ${p.age}</span>
+        <span class="tag">test: ${p.test}</span>
+      </div>
+    </div>
+  `).join("");
+
+  // ---- Metrics (values come from the trained models — see src/inference/predict.py) ----
+  const metrics = [
+    { label: "Tumor Detected:", value: "Yes", pct: 100 },
+    { label: "Confidence Score:", value: "92", suffix: "%", pct: 92 },
+    { label: "Estimated Region Size:", value: "12.4", suffix: "%", pct: 12 },
+    { label: "Segmentation Dice Score:", value: "88", suffix: "%", pct: 88 },
+    { label: "Classification Recall:", value: "94", suffix: "%", pct: 94 },
+    { label: "Confidence Score:", value: "92", suffix: "%", pct: 92 },
+  ];
+  const gridEl = document.getElementById("metricsGrid");
+  gridEl.innerHTML = metrics.map(m => `
+    <div class="metric">
+      <div class="row">
+        <span class="label">${m.label}</span>
+        <img class="icon" src="assets/icons/stethoscope.svg">
+      </div>
+      <div class="value">${m.value}${m.suffix ? `<sup>${m.suffix}</sup>` : ""}</div>
+      <div class="track"><div class="fill" data-pct="${m.pct}"></div></div>
+      <div class="scale"><span>0.0</span><span>0.100</span></div>
+    </div>
+  `).join("");
+
+  // ---- Upload interaction ----
+  // NOTE: This is a frontend-only mock. To get a real prediction, this needs to
+  // POST the file to a backend endpoint that calls src/inference/predict.py
+  // and return { has_tumor, confidence, mask_overlay_url }.
+  const uploadBtn = document.getElementById("uploadBtn");
+  const fileInput = document.getElementById("fileInput");
+  const mriPreview = document.getElementById("mriPreview");
+  const mriPlaceholder = document.getElementById("mriPlaceholder");
+  const predictionBadge = document.getElementById("predictionBadge");
+  const predictionIcon = document.getElementById("predictionIcon");
+  const predictionText = document.getElementById("predictionText");
+  const confidenceText = document.getElementById("confidenceText");
+  const rightCol = document.getElementById("rightCol");
+  const sumTumor = document.getElementById("sumTumor");
+  const notesList = document.getElementById("notesList");
+  const notesFlag = document.getElementById("notesFlag");
+
+  uploadBtn.addEventListener("click", () => fileInput.click());
+
+  fileInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      mriPreview.classList.remove("empty");
+      mriPreview.style.backgroundImage = `url(${ev.target.result})`;
+      mriPlaceholder.style.display = "none";
+
+      // Placeholder result until wired to the real backend/model
+      predictionBadge.classList.remove("idle");
+      predictionIcon.src = "assets/icons/shield-warning-white.svg";
+      predictionText.textContent = "Patient has tumor";
+      confidenceText.innerHTML = "92% <b>Confidence</b>";
+
+      // Reveal the AI summary + clinical notes now that a result exists
+      rightCol.classList.remove("disabled");
+      sumTumor.textContent = "Yes";
+      notesList.innerHTML = `
+        <li>Tumor detected in the FLAIR MRI sequence</li>
+        <li>Segmented region covers ~12.4% of the scan</li>
+        <li>Model confidence: 92% — further evaluation recommended</li>
+      `;
+      notesFlag.textContent = "Further clinical evaluation is recommended";
+
+      document.querySelectorAll(".metric .fill").forEach(el => {
+        el.style.width = el.dataset.pct + "%";
+      });
+    };
+    reader.readAsDataURL(file);
+  });
+</script>
+</body>
+</html>
