@@ -30,3 +30,8 @@ ipykernel
 
 # --- Utilities ---
 tqdm
+
+# --- Backend API ---
+fastapi
+uvicorn
+python-multipart

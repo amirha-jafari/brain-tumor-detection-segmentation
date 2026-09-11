@@ -33,10 +33,8 @@
   ul{ list-style:none; }
   img.icon{ display:block; }
 
-  /* ---------- Layout shell ---------- */
   .app{ display:flex; min-height:100vh; }
 
-  /* ---------- Sidebar ---------- */
   .sidebar{
     width:256px; flex-shrink:0; background:#fff; border-right:1px solid var(--border-soft);
     padding:24px; display:flex; flex-direction:column; justify-content:space-between;
@@ -67,7 +65,6 @@
   .logout{ display:flex; align-items:center; gap:8px; padding:12px; border-radius:16px; color:#f63437; font-size:14px; cursor:pointer; }
   .logout img.icon{ width:18px; height:18px; }
 
-  /* ---------- Main ---------- */
   .main{ flex:1; display:flex; flex-direction:column; min-width:0; }
   .topbar{
     height:92px; background:#fff; border-bottom:1px solid var(--border-soft);
@@ -107,10 +104,8 @@
   .disclaimer{ font-weight:300; font-size:16px; color:#000; margin-bottom:24px; }
   .hr{ height:1px; background:var(--border-soft); }
 
-  /* ---------- Three-column grid ---------- */
-  .grid{ display:flex; gap:24px; align-items:stretch; margin-top:24px; flex-wrap:wrap; }
+  .grid{ display:flex; gap:24px; align-items:flex-start; margin-top:24px; flex-wrap:wrap; }
 
-  /* --- Patient history column --- */
   .history-card{
     width:320px; flex-shrink:0;
     background:linear-gradient(to bottom, rgba(249,248,249,.3), rgba(249,248,249,0));
@@ -118,6 +113,7 @@
     border-radius:24px; padding:16px;
     display:flex; flex-direction:column;
     min-height:0;
+    height:670px;
   }
   .history-top{ flex-shrink:0; }
   .patient-list{ flex:1; min-height:0; overflow-y:auto; padding-right:4px; margin-right:-4px; }
@@ -141,12 +137,12 @@
   .patient-row .tag{ background:var(--bg-page); border:1px solid #f7f7f7; border-radius:24px; padding:4px 7px; font-size:11px; font-weight:300; color:var(--text-light); white-space:nowrap; }
   .patient-row .tag b{ color:var(--text-dark); font-weight:500; }
 
-  /* --- MRI scan column --- */
   .mri-card{
     width:452px; flex-shrink:0;
     background:var(--bg-card); border:1px solid var(--border);
     border-radius:24px; padding:24px;
     display:flex; flex-direction:column; gap:24px;
+    height:670px;
   }
   .prediction-badge{
     background:var(--red); border-radius:16px; padding:15px 12px;
@@ -177,8 +173,9 @@
   }
   .mri-preview.empty{ background:#f9f8f9; }
   .mri-preview .placeholder{ color:var(--text-faint); font-size:13px; text-align:center; padding:24px; font-weight:300; }
+  #maskOverlayImg{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:none; pointer-events:none; }
   .mri-legend{
-    position:absolute; left:12px; bottom:12px;
+    position:absolute; left:12px; bottom:12px; z-index:3;
     background:rgba(20,20,20,.45); backdrop-filter:blur(4px);
     -webkit-backdrop-filter:blur(4px);
     border:1px solid rgba(255,255,255,.15); border-radius:14px;
@@ -197,8 +194,7 @@
   .upload-btn img.icon{ width:14px; height:14px; }
   .upload-hint{ font-size:10px; font-weight:300; color:var(--text-light); text-align:center; margin-top:16px; }
 
-  /* --- Right column --- */
-  .right-col{ width:357px; flex-shrink:0; display:flex; flex-direction:column; gap:16px; position:relative; }
+  .right-col{ width:357px; flex-shrink:0; display:flex; flex-direction:column; gap:16px; position:relative; height:670px; }
   .right-col.disabled{ pointer-events:none; }
   .right-col.disabled .summary-card,
   .right-col.disabled .notes-card{ opacity:.45; filter:grayscale(.3); }
@@ -257,20 +253,6 @@
   .download-btn img.icon{ width:14px; height:14px; }
 
   input[type=file]{ display:none; }
-
-  /* --- Fixed equal-height layout overrides --- */
-  .grid{
-    align-items:flex-start;
-  }
-  .history-card,
-  .mri-card,
-  .right-col{
-    height:670px;
-    flex:none;
-  }
-  .patient-list{
-    overflow-y:auto;
-  }
 
   @media (max-width:1300px){ .grid{ flex-wrap:wrap; } }
 </style>
@@ -353,7 +335,7 @@
         </div>
 
         <!-- MRI scan -->
-        <div class="mri-card">
+        <div class="mri-card" id="mriCard">
           <div class="prediction-badge idle" id="predictionBadge">
             <span class="left">
               <img class="icon" id="predictionIcon" src="assets/icons/shield-warning-gray.svg">
@@ -364,6 +346,7 @@
 
           <div class="mri-preview empty" id="mriPreview">
             <div class="placeholder" id="mriPlaceholder">Upload an MRI scan to see the<br>predicted tumor overlay here</div>
+            <img id="maskOverlayImg" alt="">
             <div class="mri-legend"><span class="dot"></span>Red = tumor region</div>
           </div>
 
@@ -437,78 +420,123 @@
     </div>
   `).join("");
 
-  // ---- Metrics (values come from the trained models — see src/inference/predict.py) ----
-  const metrics = [
-    { label: "Tumor Detected:", value: "Yes", pct: 100 },
-    { label: "Confidence Score:", value: "92", suffix: "%", pct: 92 },
-    { label: "Estimated Region Size:", value: "12.4", suffix: "%", pct: 12 },
-    { label: "Segmentation Dice Score:", value: "88", suffix: "%", pct: 88 },
-    { label: "Classification Recall:", value: "94", suffix: "%", pct: 94 },
-    { label: "Confidence Score:", value: "92", suffix: "%", pct: 92 },
-  ];
-  const gridEl = document.getElementById("metricsGrid");
-  gridEl.innerHTML = metrics.map(m => `
-    <div class="metric">
-      <div class="row">
-        <span class="label">${m.label}</span>
-        <img class="icon" src="assets/icons/stethoscope.svg">
-      </div>
-      <div class="value">${m.value}${m.suffix ? `<sup>${m.suffix}</sup>` : ""}</div>
-      <div class="track"><div class="fill" data-pct="${m.pct}"></div></div>
-      <div class="scale"><span>0.0</span><span>0.100</span></div>
-    </div>
-  `).join("");
+  // ---- Keep Patient History the same height as the taller of the other two columns ----
+  const historyCard = document.querySelector(".history-card");
+  const mriCard = document.getElementById("mriCard");
+  const rightCol = document.getElementById("rightCol");
 
-  // ---- Upload interaction ----
-  // NOTE: This is a frontend-only mock. To get a real prediction, this needs to
-  // POST the file to a backend endpoint that calls src/inference/predict.py
-  // and return { has_tumor, confidence, mask_overlay_url }.
+  function syncHistoryHeight() {
+    if (!historyCard || !mriCard || !rightCol) return;
+    historyCard.style.height = "auto";
+    const target = Math.max(mriCard.offsetHeight, rightCol.offsetHeight);
+    historyCard.style.height = target + "px";
+  }
+
+  window.addEventListener("load", syncHistoryHeight);
+  window.addEventListener("resize", syncHistoryHeight);
+
+  // ---- Metrics grid ----
+  const metricsGrid = document.getElementById("metricsGrid");
+
+  function renderMetrics(confidencePct) {
+    const metrics = [
+      { label: "Tumor Detected:", value: "Yes", pct: 100 },
+      { label: "Confidence Score:", value: String(confidencePct), suffix: "%", pct: confidencePct },
+      { label: "Estimated Region Size:", value: "12.4", suffix: "%", pct: 12 },
+      { label: "Segmentation Dice Score:", value: "88", suffix: "%", pct: 88 },
+      { label: "Classification Recall:", value: "94", suffix: "%", pct: 94 },
+      { label: "Confidence Score:", value: String(confidencePct), suffix: "%", pct: confidencePct },
+    ];
+    metricsGrid.innerHTML = metrics.map(m => `
+      <div class="metric">
+        <div class="row">
+          <span class="label">${m.label}</span>
+          <img class="icon" src="assets/icons/stethoscope.svg">
+        </div>
+        <div class="value">${m.value}${m.suffix ? `<sup>${m.suffix}</sup>` : ""}</div>
+        <div class="track"><div class="fill" style="width:${m.pct}%"></div></div>
+        <div class="scale"><span>0.0</span><span>0.100</span></div>
+      </div>
+    `).join("");
+  }
+
+  // ---- Upload interaction: send the file to the real backend and show the real prediction ----
   const uploadBtn = document.getElementById("uploadBtn");
   const fileInput = document.getElementById("fileInput");
   const mriPreview = document.getElementById("mriPreview");
   const mriPlaceholder = document.getElementById("mriPlaceholder");
+  const maskOverlayImg = document.getElementById("maskOverlayImg");
   const predictionBadge = document.getElementById("predictionBadge");
   const predictionIcon = document.getElementById("predictionIcon");
   const predictionText = document.getElementById("predictionText");
   const confidenceText = document.getElementById("confidenceText");
-  const rightCol = document.getElementById("rightCol");
   const sumTumor = document.getElementById("sumTumor");
   const notesList = document.getElementById("notesList");
   const notesFlag = document.getElementById("notesFlag");
 
   uploadBtn.addEventListener("click", () => fileInput.click());
 
-  fileInput.addEventListener("change", (e) => {
+  const API_URL = "http://127.0.0.1:8000/predict";
+
+  fileInput.addEventListener("change", async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      mriPreview.classList.remove("empty");
-      mriPreview.style.backgroundImage = `url(${ev.target.result})`;
-      mriPlaceholder.style.display = "none";
+    mriPreview.classList.remove("empty");
+    mriPlaceholder.style.display = "none";
+    maskOverlayImg.style.display = "none";
 
-      // Placeholder result until wired to the real backend/model
-      predictionBadge.classList.remove("idle");
-      predictionIcon.src = "assets/icons/shield-warning-white.svg";
-      predictionText.textContent = "Patient has tumor";
-      confidenceText.innerHTML = "92% <b>Confidence</b>";
+    predictionBadge.classList.remove("idle");
+    predictionIcon.src = "assets/icons/shield-warning-white.svg";
+    predictionText.textContent = "Analyzing...";
+    confidenceText.innerHTML = "";
 
-      // Reveal the AI summary + clinical notes now that a result exists
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch(API_URL, { method: "POST", body: formData });
+      if (!res.ok) throw new Error("Server error: " + res.status);
+
+      const data = await res.json();
+      const hasTumor = data.has_tumor;
+      const confidencePct = Math.round(data.confidence * 100);
+
+      // Always use the PNG version the backend sends back — the raw uploaded
+      // file (e.g. .tif) may not be renderable directly by the browser.
+      if (data.original_image) {
+        mriPreview.style.backgroundImage = `url(${data.original_image})`;
+      }
+
+      predictionText.textContent = hasTumor ? "Patient has tumor" : "No tumor detected";
+      confidenceText.innerHTML = `${confidencePct}% <b>Confidence</b>`;
+
+      if (hasTumor && data.mask_overlay) {
+        maskOverlayImg.src = data.mask_overlay;
+        maskOverlayImg.style.display = "block";
+      } else {
+        maskOverlayImg.style.display = "none";
+      }
+
       rightCol.classList.remove("disabled");
-      sumTumor.textContent = "Yes";
-      notesList.innerHTML = `
-        <li>Tumor detected in the FLAIR MRI sequence</li>
-        <li>Segmented region covers ~12.4% of the scan</li>
-        <li>Model confidence: 92% — further evaluation recommended</li>
-      `;
-      notesFlag.textContent = "Further clinical evaluation is recommended";
+      sumTumor.textContent = hasTumor ? "Yes" : "No";
+      renderMetrics(confidencePct);
 
-      document.querySelectorAll(".metric .fill").forEach(el => {
-        el.style.width = el.dataset.pct + "%";
-      });
-    };
-    reader.readAsDataURL(file);
+      notesList.innerHTML = hasTumor
+        ? `
+          <li>Tumor detected in the FLAIR MRI sequence</li>
+          <li>Model confidence: ${confidencePct}% — further evaluation recommended</li>
+        `
+        : `<li>No tumor detected in this scan</li>`;
+
+      notesFlag.textContent = hasTumor ? "Further clinical evaluation is recommended" : "";
+
+      syncHistoryHeight();
+
+    } catch (err) {
+      predictionText.textContent = "Error contacting server";
+      console.error(err);
+    }
   });
 </script>
 </body>
