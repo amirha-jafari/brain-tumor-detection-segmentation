@@ -6,14 +6,14 @@
 data:
   raw_dir: "data/raw"
   processed_dir: "data/processed"
-  image_size: 256          # همه‌ی تصاویر به این سایز resize می‌شن
+  image_size: 256         
   val_split: 0.15
   test_split: 0.15
   seed: 42
 
 classification:
-  backbone: "resnet18"      # می‌تونی بعداً عوضش کنی
-  num_classes: 2            # tumor / no-tumor
+  backbone: "resnet18"     
+  num_classes: 2           
   batch_size: 32
   learning_rate: 0.0001
   epochs: 20
@@ -28,9 +28,9 @@ segmentation:
   weights_path: "models/segmentation/weights/unet_best.pt"
 
 training:
-  device: "cuda"            # اگه GPU نداری بذار "cpu"
+  device: "cuda"            
   num_workers: 2
   checkpoint_dir: "outputs/checkpoints"
 
 inference:
-  classification_threshold: 0.5   # بالاتر از این یعنی "تومور هست"
+  classification_threshold: 0.5  
